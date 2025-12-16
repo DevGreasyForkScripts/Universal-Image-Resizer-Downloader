@@ -50,15 +50,19 @@
   };
   if (stickyFmt) state.options.format = stickyFmt;  // stick to last used (e.g., JPG)
 
+
+
   // =========================
   // Platform presets
   // =========================
   const PLATFORM_PRESETS = [
     {
-      title: 'Suno / Spotify / DistroKid (Covers)',
+      title: 'Suno',
       items: [
-        { label: 'Album Cover 3000×3000', w: 3000, h: 3000 },
-        { label: 'Alt Cover 1600×1600',   w: 1600, h: 1600 }
+        { label: 'Video 1080×1920 (9:16)', w: 1080, h: 1920 },
+        { label: 'Video 720×1280 (Min)',   w: 720,  h: 1280 },
+        { label: 'Cover 3000×3000',        w: 3000, h: 3000 },
+        { label: 'Cover 1600×1600',        w: 1600, h: 1600 }
       ]
     },
     {
@@ -84,6 +88,13 @@
         { label: 'Post Square 1080×1080',   w: 1080, h: 1080 },
         { label: 'Post Portrait 1080×1350', w: 1080, h: 1350 },
         { label: 'Story/Reel 1080×1920',    w: 1080, h: 1920 }
+      ]
+    },
+    {
+      title: 'Spotify / DistroKid',
+      items: [
+         { label: 'Album Cover 3000×3000', w: 3000, h: 3000 },
+         { label: 'Alt Cover 1600×1600',   w: 1600, h: 1600 }
       ]
     }
   ];
@@ -134,18 +145,56 @@
   `);
 
   // =========================
-  // Hover chip (unchanged)
+  // Hover chip
   // =========================
   let chip, chipHover = false, clearSelTimer;
   function ensureChip() {
     if (chip) return chip;
-    chip = h('div', { class: 'uird-chip', style: { display: 'none' } }, 'Resize');
+    
+    // Create chip container
+    chip = h('div', { class: 'uird-chip', style: { display: 'none', gap: '8px', alignItems: 'center' } });
+    
+    // Main "Resize" button part
+    const mainBtn = h('span', {}, 'Resize');
+    mainBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (!state.selectedImg && state.lastHoverImg) state.selectedImg = state.lastHoverImg;
+        if (state.selectedImg) openPanel();
+    };
+    chip.appendChild(mainBtn);
+
+    // Suno/Vertical "Fast Action" button
+    const sunoBtn = h('span', {  
+            style: { borderLeft: '1px solid rgba(255,255,255,0.3)', paddingLeft: '8px', fontWeight: 'bold', color: '#ffd700' },
+            title: 'Quick 9:16 (1080x1920) Cover [Click: Panel, Alt+Click: Download]'
+        }, '⚡ 9:16');
+        
+        sunoBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (!state.selectedImg && state.lastHoverImg) state.selectedImg = state.lastHoverImg;
+            if (!state.selectedImg) return;
+            
+            // Set Suno Video Defaults
+            state.options.width = 1080;
+            state.options.height = 1920;
+            state.options.mode = 'cover';
+            saveOptions();
+            
+            if (e.altKey) {
+                // Alt+Click -> Instant Download
+                processCurrentImage(true);
+            } else {
+                // Click -> Open Panel (so they can verify crop)
+                // We force panel open even if already open to update inputs
+                if(panel) { panel.remove(); panel = null; }
+                openPanel();
+            }
+        };
+        chip.appendChild(sunoBtn);
+
     chip.addEventListener('mouseenter', () => { chipHover = true; });
     chip.addEventListener('mouseleave', () => { chipHover = false; scheduleClearSelection(); });
-    chip.addEventListener('click', () => {
-      if (!state.selectedImg && state.lastHoverImg) state.selectedImg = state.lastHoverImg;
-      if (state.selectedImg) openPanel();
-    });
+    
     document.body.appendChild(chip);
     return chip;
   }
@@ -162,7 +211,7 @@
     }
     ch.style.left = `${x}px`;
     ch.style.top  = `${y}px`;
-    ch.style.display = 'block';
+    ch.style.display = 'flex';
   }
   function scheduleClearSelection() {
     clearTimeout(clearSelTimer);
@@ -578,9 +627,19 @@
       });
 
       const recalc = () => state.selectedImg === img && positionChipFor(img);
-      addEventListener('scroll', recalc, { passive: true });
-      addEventListener('resize', recalc);
+      const debouncedRecalc = debounce(recalc, 100);
+      
+      addEventListener('scroll', debouncedRecalc, { passive: true });
+      addEventListener('resize', debouncedRecalc);
     });
+  }
+
+  function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), wait);
+    };
   }
 
   const mo = new MutationObserver(muts => {
