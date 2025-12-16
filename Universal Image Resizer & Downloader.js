@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Universal Image Resizer & Downloader (by Eliminater74)
 // @namespace    https://greasyfork.org/en/users/123456-eliminater74
-// @version      1.6
+// @version      1.7
 // @description  Resize any image client-side (CORS-safe). Alt+Right-Click or hover chip to open. Blob preview + anchor download. Remembers last settings + last-used format (sticky). Timestamped filenames with tokens. Quick presets + Platform presets dropdown in header.
 // @author       Eliminater74
 // @license      MIT
